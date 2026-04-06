@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Prescrição Penal — Crimes contra a Adm. Pública</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #0d2240;
+      --blue:   #1a4a8a;
+      --accent: #c8a846;
+      --light:  #f4f6fa;
+      --border: #cdd5e0;
+      --red:    #b91c1c;
+      --green:  #15803d;
+      --text:   #1e293b;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--light);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 24px 32px;
+      border-bottom: 4px solid var(--accent);
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: .02em; }
+    header p  { font-size: .85rem; color: #aab8cc; margin-top: 4px; }
+
+    .wrapper {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 0 16px 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 4px;
+      margin-top: 14px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input[type=number], input[type=date], select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: .9rem;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .2s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--blue); }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 0;
+      font-weight: 400;
+      cursor: pointer;
+    }
+    .checkbox-group input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+
+    /* marcos */
+    #marcos-list { margin-top: 8px; }
+    .marco-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .marco-row select { font-size: .82rem; }
+    .marco-row input[type=date] { font-size: .82rem; }
+    .btn-remove {
+      background: none;
+      border: 1px solid #fca5a5;
+      color: var(--red);
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: .8rem;
+    }
+    .btn-remove:hover { background: #fef2f2; }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: var(--blue); color: #fff; width: 100%; margin-top: 20px; }
+    .btn-secondary { background: var(--navy); color: var(--accent); margin-top: 10px; font-size: .8rem; padding: 7px 14px; }
+    .btn-clear { background: #e2e8f0; color: #475569; font-size: .8rem; padding: 7px 14px; margin-top: 10px; }
+
+    /* results */
+    #resultado {
+      grid-column: 1 / -1;
+      display: none;
+    }
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-box .label { font-size: .75rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+    .stat-box .value { font-size: 1.3rem; font-weight: 700; color: var(--navy); margin-top: 4px; }
+    .stat-box.ok .value  { color: var(--green); }
+    .stat-box.bad .value { color: var(--red); }
+
+    .verdict {
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+    .verdict.prescrito    { background: #fef2f2; border: 2px solid var(--red);   color: var(--red); }
+    .verdict.nao-prescrito{ background: #f0fdf4; border: 2px solid var(--green); color: var(--green); }
+
+    /* timeline */
+    .timeline { position: relative; padding-left: 28px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .tl-item {
+      position: relative;
+      margin-bottom: 18px;
+    }
+    .tl-item::before {
+      content: '';
+      position: absolute;
+      left: -24px; top: 4px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--blue);
+      background: #fff;
+    }
+    .tl-item.interrupcao::before { border-color: var(--accent); background: var(--accent); }
+    .tl-item.prescrito::before   { border-color: var(--red);   background: var(--red); }
+    .tl-item .tl-date  { font-size: .75rem; color: #64748b; }
+    .tl-item .tl-label { font-size: .87rem; font-weight: 600; }
+    .tl-item .tl-sub   { font-size: .78rem; color: #64748b; margin-top: 2px; }
+
+    .note {
+      font-size: .75rem;
+      color: #64748b;
+      background: #f8fafc;
+      border-left: 3px solid var(--accent);
+      padding: 8px 12px;
+      margin-top: 16px;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* crimes quick-select */
+    .crime-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .crime-chip {
+      font-size: .72rem;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      background: #fff;
+      color: var(--blue);
+      transition: background .15s;
+    }
+    .crime-chip:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    @media (max-width: 680px) {
+      .wrapper { grid-template-columns: 1fr; }
+      #resultado { grid-column: 1; }
+      .result-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Calculadora de Prescrição Penal</h1>
+  <p>Crimes contra a Administração Pública &mdash; Arts. 109, 110, 115 e 117 do CP</p>
+</header>
+
+<div class="wrapper">
+
+  <!-- COLUNA 1: dados do crime -->
+  <div class="card">
+    <h2>Dados do Crime</h2>
+
+    <label>Crime (seleção rápida)</label>
+    <div class="crime-chip-list" id="crime-chips"></div>
+
+    <label for="pena-anos">Pena máxima em abstrato</label>
+    <div class="row2">
+      <div>
+        <input type="number" id="pena-anos" min="0" max="40" placeholder="Anos" value="">
+        <span style="font-size:.75rem;color:#64748b;margin-top:2px;display:block">Anos</span>
+      </div>
+      <div>
+        <input type="number" id="pena-meses" min="0" max="11" placeholder="Meses" value="0">
+        <span style="font-size:.75rem;color:#64748b;margin-top:2px;display:block">Meses (0–11)</span>
+      </div>
+    </div>
+
+    <label for="tipo-prescricao">Modalidade de prescrição</label>
+    <select id="tipo-prescricao">
+      <option value="punitiva">Pretensão Punitiva (antes do trânsito em julgado)</option>
+      <option value="retroativa">Retroativa (após TJ — baseada na pena aplicada)</option>
+      <option value="executoria">Pretensão Executória (após TJ condenatório)</option>
+    </select>
+
+    <div id="pena-aplicada-wrap" style="display:none">
+      <label>Pena concretamente aplicada (para retroativa/executória)</label>
+      <div class="row2">
+        <div>
+          <input type="number" id="pena-ap-anos" min="0" max="40" placeholder="Anos" value="">
+          <span style="font-size:.75rem;color:#64748b;margin-top:2px;display:block">Anos</span>
+        </div>
+        <div>
+          <input type="number" id="pena-ap-meses" min="0" max="11" placeholder="Meses" value="0">
+          <span style="font-size:.75rem;color:#64748b;margin-top:2px;display:block">Meses (0–11)</span>
+        </div>
+      </div>
+    </div>
+
+    <label for="data-fato">Data do fato (ou encerramento da conduta)</label>
+    <input type="date" id="data-fato">
+
+    <label>Reduções legais (art. 115 CP)</label>
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" id="menor21">
+        Agente menor de 21 anos na data do fato
+      </label>
+      <label>
+        <input type="checkbox" id="maior70">
+        Agente maior de 70 anos na data da sentença
+      </label>
+    </div>
+  </div>
+
+  <!-- COLUNA 2: marcos interruptivos -->
+  <div class="card">
+    <h2>Marcos Interruptivos (art. 117 CP)</h2>
+    <p style="font-size:.78rem;color:#64748b;margin-bottom:12px">
+      Cada marco zera o prazo. O prazo entre dois marcos sucessivos não pode exceder o prazo prescricional total (Súmula 497 STF).
+    </p>
+
+    <div id="marcos-list"></div>
+
+    <button class="btn btn-secondary" onclick="addMarco()">+ Adicionar marco</button>
+    <button class="btn btn-clear" style="margin-left:8px" onclick="limparMarcos()">Limpar marcos</button>
+
+    <div class="note" style="margin-top:16px">
+      <strong>Marcos previstos no art. 117 CP:</strong><br>
+      I – Recebimento da denúncia ou queixa<br>
+      II – Pronúncia (Tribunal do Júri)<br>
+      III – Decisão confirmatória da pronúncia<br>
+      IV – Publicação da sentença/acórdão condenatório recorrível<br>
+      V – Início ou continuação do cumprimento da pena<br>
+      VI – Reincidência
+    </div>
+
+    <button class="btn btn-primary" onclick="calcular()">Calcular Prescrição</button>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="card" id="resultado">
+    <h2>Resultado</h2>
+    <div id="resultado-content"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── Crimes contra a Administração Pública (Título XI CP) ────────────────────
+const CRIMES = [
+  { nome: "Peculato (Art. 312)", pena: 12 },
+  { nome: "Peculato Culposo (Art. 312 §2º)", pena: 1 },
+  { nome: "Inserção de dados falsos (Art. 313-A)", pena: 12 },
+  { nome: "Concussão (Art. 316)", pena: 8 },
+  { nome: "Excesso de exação (Art. 316 §1º)", pena: 5 },
+  { nome: "Corrupção Passiva (Art. 317)", pena: 12 },
+  { nome: "Prevaricação (Art. 319)", pena: 1 },
+  { nome: "Condescendência Criminosa (Art. 320)", pena: 1 },
+  { nome: "Abandono de Função (Art. 323)", pena: 1 },
+  { nome: "Violência Arbitrária (Art. 322)", pena: 1 },
+  { nome: "Corrupção Ativa (Art. 333)", pena: 12 },
+  { nome: "Tráfico de Influência (Art. 332)", pena: 10 },
+  { nome: "Lavagem de Dinheiro (Lei 9.613/98)", pena: 16 },
+  { nome: "Improbidade (Lei 8.429 — penal)", pena: 12 },
+  { nome: "Emprego Irregular de Verbas (Art. 315)", pena: 1 },
+];
+
+// ─── Tabela prescricional — art. 109 CP ─────────────────────────────────────
+// retorna prazo em anos (pode ser fracionado internamente)
+function prazoPrescricional(penaMeses) {
+  const anos = penaMeses / 12;
+  if (anos > 12)       return 20;
+  if (anos > 8)        return 16;
+  if (anos > 4)        return 12;
+  if (anos > 2)        return 8;
+  if (anos >= 1)       return 4;
+  return 3;
+}
+
+// ─── Helpers de data ─────────────────────────────────────────────────────────
+function addYears(date, years) {
+  const d = new Date(date);
+  d.setFullYear(d.getFullYear() + years);
+  return d;
+}
+function fmtDate(date) {
+  if (!date || isNaN(date)) return '—';
+  return date.toLocaleDateString('pt-BR');
+}
+function diffDias(a, b) { // b - a em dias
+  return Math.round((b - a) / 86400000);
+}
+
+// ─── Render chips ─────────────────────────────────────────────────────────────
+function renderChips() {
+  const el = document.getElementById('crime-chips');
+  CRIMES.forEach(c => {
+    const chip = document.createElement('button');
+    chip.className = 'crime-chip';
+    chip.textContent = c.nome;
+    chip.onclick = () => {
+      document.getElementById('pena-anos').value = c.pena;
+      document.getElementById('pena-meses').value = 0;
+    };
+    el.appendChild(chip);
+  });
+}
+
+// ─── Marcos ──────────────────────────────────────────────────────────────────
+const MARCOS_OPCOES = [
+  "Recebimento da denúncia ou queixa (inc. I)",
+  "Pronúncia — Tribunal do Júri (inc. II)",
+  "Decisão confirmatória da pronúncia (inc. III)",
+  "Publicação da sentença/acórdão condenatório (inc. IV)",
+  "Início/continuação do cumprimento da pena (inc. V)",
+  "Reincidência (inc. VI)",
+];
+
+let marcoCount = 0;
+
+function addMarco(tipo = '', data = '') {
+  marcoCount++;
+  const id = 'marco-' + marcoCount;
+  const div = document.createElement('div');
+  div.className = 'marco-row';
+  div.id = id;
+
+  const sel = document.createElement('select');
+  MARCOS_OPCOES.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
+  if (tipo) sel.value = tipo;
+
+  const inp = document.createElement('input');
+  inp.type = 'date'; inp.value = data;
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-remove'; btn.textContent = '✕';
+  btn.onclick = () => div.remove();
+
+  div.appendChild(sel); div.appendChild(inp); div.appendChild(btn);
+  document.getElementById('marcos-list').appendChild(div);
+}
+
+function limparMarcos() {
+  document.getElementById('marcos-list').innerHTML = '';
+}
+
+function getMarcos() {
+  const rows = document.querySelectorAll('.marco-row');
+  const out = [];
+  rows.forEach(row => {
+    const sel  = row.querySelector('select');
+    const inp  = row.querySelector('input[type=date]');
+    if (inp.value) out.push({ label: sel.value, date: new Date(inp.value + 'T00:00:00') });
+  });
+  out.sort((a, b) => a.date - b.date);
+  return out;
+}
+
+// ─── Toggle pena aplicada ─────────────────────────────────────────────────────
+document.getElementById('tipo-prescricao').addEventListener('change', function() {
+  const show = this.value !== 'punitiva';
+  document.getElementById('pena-aplicada-wrap').style.display = show ? '' : 'none';
+});
+
+// ─── Cálculo principal ───────────────────────────────────────────────────────
+function calcular() {
+  // Inputs
+  const tipoPrescrição  = document.getElementById('tipo-prescricao').value;
+  const penaAbsAnos     = parseInt(document.getElementById('pena-anos').value)  || 0;
+  const penaAbsMeses    = parseInt(document.getElementById('pena-meses').value) || 0;
+  const penaAbsTotalMeses = penaAbsAnos * 12 + penaAbsMeses;
+
+  const dataFatoStr = document.getElementById('data-fato').value;
+  const dataFato    = dataFatoStr ? new Date(dataFatoStr + 'T00:00:00') : null;
+
+  const menor21 = document.getElementById('menor21').checked;
+  const maior70 = document.getElementById('maior70').checked;
+
+  // Validações
+  if (penaAbsTotalMeses <= 0) {
+    alert('Informe a pena máxima em abstrato.');
+    return;
+  }
+  if (!dataFato) {
+    alert('Informe a data do fato.');
+    return;
+  }
+
+  // Pena de referência para o prazo
+  let penaRefMeses = penaAbsTotalMeses;
+  if (tipoPrescrição !== 'punitiva') {
+    const apAnos  = parseInt(document.getElementById('pena-ap-anos').value)  || 0;
+    const apMeses = parseInt(document.getElementById('pena-ap-meses').value) || 0;
+    const apTotal = apAnos * 12 + apMeses;
+    if (apTotal > 0) penaRefMeses = apTotal;
+  }
+
+  // Prazo prescricional base (em anos)
+  let prazoAnos = prazoPrescricional(penaRefMeses);
+
+  // Redução do art. 115
+  const reducao = menor21 || maior70;
+  if (reducao) prazoAnos = prazoAnos / 2;
+
+  // Marcos interruptivos ordenados
+  const marcos = getMarcos();
+
+  // Construção da linha do tempo
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  // Segmentos: [início, fim, interrompido por]
+  // O prazo corre entre cada par de marcos
+  const eventos = [];
+
+  // Ponto inicial: data do fato
+  eventos.push({ date: dataFato, label: 'Data do fato', tipo: 'inicio' });
+
+  let correndo = dataFato;
+  let prescrito = false;
+  let dataPrescrição = null;
+  let marcoPrescricao = null;
+
+  const segmentos = []; // { inicio, fim_prescricao, marco_interruptivo_label }
+  let marcoAtual = null; // marco que iniciou o segmento atual
+
+  for (let i = 0; i <= marcos.length; i++) {
+    const limiteMarco = marcos[i] ? marcos[i].date : null;
+    const fimPrescricaoSegmento = addYears(correndo, prazoAnos);
+
+    if (limiteMarco && limiteMarco < fimPrescricaoSegmento) {
+      // Marco ocorre antes da prescrição → interrompe
+      eventos.push({
+        date: marcos[i].date,
+        label: 'Marco interruptivo: ' + marcos[i].label,
+        tipo: 'interrupcao',
+        prazo: `Prazo: ${prazoAnos % 1 === 0 ? prazoAnos : prazoAnos.toFixed(1)} anos a partir de ${fmtDate(correndo)} — prescreveria em ${fmtDate(fimPrescricaoSegmento)}`,
+      });
+      correndo = marcos[i].date;
+    } else {
+      // Prescrição ocorre neste segmento
+      dataPrescrição = fimPrescricaoSegmento;
+      prescrito = dataPrescrição <= today;
+      break;
+    }
+  }
+
+  // ─── Renderização ─────────────────────────────────────────────────────────
+  const container = document.getElementById('resultado-content');
+  container.innerHTML = '';
+
+  // Verdict
+  const verdict = document.createElement('div');
+  verdict.className = 'verdict ' + (prescrito ? 'prescrito' : 'nao-prescrito');
+  verdict.textContent = prescrito
+    ? `PRESCRITO — A pretensão prescreveu em ${fmtDate(dataPrescrição)}.`
+    : `NÃO PRESCRITO — O prazo expira em ${fmtDate(dataPrescrição)}.`;
+  container.appendChild(verdict);
+
+  // Stat boxes
+  const grid = document.createElement('div');
+  grid.className = 'result-grid';
+
+  const diasRestantes = diffDias(today, dataPrescrição);
+
+  const stats = [
+    {
+      label: 'Prazo prescricional',
+      value: (prazoAnos % 1 === 0 ? prazoAnos : prazoAnos.toFixed(1)) + ' anos' + (reducao ? ' (½ art.115)' : ''),
+      cls: '',
+    },
+    {
+      label: prescrito ? 'Prescreveu em' : 'Expira em',
+      value: fmtDate(dataPrescrição),
+      cls: prescrito ? 'bad' : 'ok',
+    },
+    {
+      label: prescrito ? 'Dias desde a prescrição' : 'Dias restantes',
+      value: Math.abs(diasRestantes) + ' dias',
+      cls: prescrito ? 'bad' : (diasRestantes < 180 ? 'bad' : 'ok'),
+    },
+  ];
+
+  stats.forEach(s => {
+    const box = document.createElement('div');
+    box.className = 'stat-box ' + s.cls;
+    box.innerHTML = `<div class="label">${s.label}</div><div class="value">${s.value}</div>`;
+    grid.appendChild(box);
+  });
+  container.appendChild(grid);
+
+  // Info prazo base
+  const info = document.createElement('div');
+  info.className = 'note';
+  const penaStr = penaAbsAnos + (penaAbsMeses > 0 ? ` anos e ${penaAbsMeses} meses` : ' anos');
+  const refStr  = penaRefMeses !== penaAbsTotalMeses
+    ? ` | Pena aplicada: ${Math.floor(penaRefMeses/12)}a ${penaRefMeses%12}m`
+    : '';
+  info.innerHTML = `<strong>Base:</strong> Pena máxima ${penaStr}${refStr} → prazo prescricional bruto: ${prazoPrescricional(penaRefMeses)} anos (art. 109 CP)` +
+    (reducao ? ` → reduzido à metade: ${prazoAnos % 1 === 0 ? prazoAnos : prazoAnos.toFixed(1)} anos (art. 115 CP)` : '') +
+    `.<br><strong>Modalidade:</strong> ${{ punitiva: 'Pretensão Punitiva', retroativa: 'Retroativa', executoria: 'Executória' }[tipoPrescrição]}.`;
+  container.appendChild(info);
+
+  // Timeline
+  const tlTitle = document.createElement('h3');
+  tlTitle.style.cssText = 'font-size:.85rem;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;';
+  tlTitle.textContent = 'Linha do Tempo';
+  container.appendChild(tlTitle);
+
+  const tl = document.createElement('div');
+  tl.className = 'timeline';
+
+  // Adiciona evento de prescrição
+  eventos.push({
+    date: dataPrescrição,
+    label: prescrito ? 'Prescrição consumada' : 'Prazo de prescrição expira',
+    tipo: prescrito ? 'prescrito' : 'fim',
+  });
+
+  eventos.forEach((ev, idx) => {
+    const item = document.createElement('div');
+    item.className = 'tl-item ' + ev.tipo;
+
+    let sub = ev.prazo || '';
+    if (ev.tipo === 'inicio') {
+      sub = `Início do prazo de ${prazoAnos % 1 === 0 ? prazoAnos : prazoAnos.toFixed(1)} anos → expiraria em ${fmtDate(addYears(ev.date, prazoAnos))}`;
+    }
+    if (ev.tipo === 'interrupcao' && idx < eventos.length - 1) {
+      const proximo = marcos[idx]; // aproximação
+      // sub já está em ev.prazo
+    }
+
+    item.innerHTML = `
+      <div class="tl-date">${fmtDate(ev.date)}</div>
+      <div class="tl-label">${ev.label}</div>
+      ${sub ? `<div class="tl-sub">${sub}</div>` : ''}
+    `;
+    tl.appendChild(item);
+  });
+
+  container.appendChild(tl);
+
+  // Nota sobre Súmula 497 STF
+  const sumula = document.createElement('div');
+  sumula.className = 'note';
+  sumula.innerHTML = `
+    <strong>Atenção:</strong> Pela <strong>Súmula 497 do STF</strong>, quando se dividir o período
+    prescricional em razão de marcos interruptivos, cada segmento isolado não pode ultrapassar
+    o prazo prescricional total. O cálculo acima verifica isso automaticamente.<br>
+    Para crimes praticados em concurso, a prescrição incide individualmente sobre cada crime
+    (art. 119 CP).
+  `;
+  container.appendChild(sumula);
+
+  // Exibe resultado
+  const el = document.getElementById('resultado');
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+renderChips();
+addMarco(); // começa com um marco em branco
+</script>
+</body>
+</html>
